@@ -1,0 +1,41 @@
+query_id,query_title,Source_URL,query_type,expected_reference_track_id,should_retrieve_reference,transformation_type,expected_similarity_type,evaluation_split
+QRY_001,"Veera Raja Veera, Ponniyin Selvan II",https://www.youtube.com/watch?v=0aavCtXiiX4,LEGAL_CASE_STUDY,REF_001,TRUE_FOR_REVIEW,MELODY_MODIFICATION,MELODY_AND_RHYTHM,CASE_STUDY
+QRY_002,"Varaha Roopam, Kantara",https://www.youtube.com/watch?v=m-5ck3BuT1o,LEGAL_CASE_STUDY,REF_002,TRUE_FOR_REVIEW,MELODY_MODIFICATION,MULTI_FEATURE,CASE_STUDY
+QRY_003,"Krazzy 4 Remix, Krazzy 4",https://www.youtube.com/watch?v=3QarnZGy4VU,LEGAL_CASE_STUDY,REF_003,TRUE_FOR_REVIEW,PARTIAL_HOOK_REUSE,MELODY_AND_RHYTHM,TEST
+QRY_004,"Break Free Remix, Krazzy 4",https://www.youtube.com/watch?v=56PCvfMklIU,LEGAL_CASE_STUDY,REF_003,TRUE_FOR_REVIEW,PARTIAL_HOOK_REUSE,MELODY_AND_RHYTHM,TEST
+QRY_005,"Hey Who Are You, Kirik Party",https://www.youtube.com/watch?v=ps3FPq0hlG8,LEGAL_CASE_STUDY,REF_004,TRUE_FOR_REVIEW,MELODY_MODIFICATION,MELODY_AND_RHYTHM,CASE_STUDY
+QRY_006,"Don’t Be Shy Again, Bala",https://www.youtube.com/watch?v=_PHchFX5qiE,FULL_SONG_REMAKE,REF_005,TRUE,FULL_SONG_REMAKE,MULTI_FEATURE,VALIDATION
+QRY_007,"Pasoori Nu, Satyaprem Ki Katha",https://www.youtube.com/watch?v=UAuvmx3cPos,FULL_SONG_REMAKE,REF_006,TRUE,FULL_SONG_REMAKE,MELODY_AND_RHYTHM,VALIDATION
+QRY_008,"Laila Main Laila, Raees",https://www.youtube.com/watch?v=95I5VaR7GeU,FULL_SONG_REMAKE,REF_007,TRUE,FULL_SONG_REMAKE,MELODY_AND_RHYTHM,VALIDATION
+QRY_009,"Kangna Tera Ni, Chaar Din Ki Chandni",https://www.youtube.com/watch?v=tndA-MeIu7c,FULL_SONG_REMAKE,REF_008,TRUE,FULL_SONG_REMAKE,MULTI_FEATURE,VALIDATION
+QRY_010,"Genda Phool, Badshah featuring Payal Dev",https://www.youtube.com/watch?v=SD4Z8dlZPd8,LYRICS_CASE,REF_009,TRUE_FOR_REVIEW,NONE,LYRICS,CASE_STUDY
+QRY_011,"Chuttamalle, Devara: Part 1",https://www.youtube.com/watch?v=GWNrPJyRTcA,EXPLORATORY,REF_010,UNKNOWN,NONE,UNKNOWN,CASE_STUDY
+QRY_012,Krazzy 4 Title Track,https://www.youtube.com/watch?v=qmButmNNvkA,HARD_NEGATIVE,REF_011,FALSE,HARD_NEGATIVE,RHYTHM,TEST
+QRY_013,"Lambi Judai, Jannat",https://www.youtube.com/watch?v=e0DhOAEUTAs,EXPLORATORY,REF_012,UNKNOWN,NONE,NO_DISTINCTIVE_MATCH,CASE_STUDY
+QRY_014,"Tu Hi Toh Meri Dost Hain, Yuvvraaj",https://www.youtube.com/watch?v=nAFb2LQ87pE,EXPLORATORY,REF_013,UNKNOWN,NONE,UNKNOWN,CASE_STUDY
+QRY_015,"Naam, Tulsi Kumar featuring Millind Gaba",https://www.youtube.com/watch?v=LxhEW6B-DrM,EXPLORATORY,REF_014,UNKNOWN,NONE,MELODY,CASE_STUDY
+QRY_016,"Haare Haare Haare, Hum To Dil Se Haare, Josh",https://www.youtube.com/watch?v=j2w3Yz0Eiuk,EXPLORATORY,REF_015,UNKNOWN,NONE,MELODY,CASE_STUDY
+QRY_017,"Itna Bhi Na Chaho Mujhe, Sanam Teri Kasam",https://www.youtube.com/watch?v=crfJgMYKuzc,EXPLORATORY,REF_016,UNKNOWN,NONE,MELODY,CASE_STUDY
+QRY_018,"Mujhe Kya Pata Tera Ghar Hai Kahan, Bekhudi",https://www.youtube.com/watch?v=RblqL1Opk0w,EXPLORATORY,REF_017,UNKNOWN,NONE,UNKNOWN,CASE_STUDY
+QRY_019,"Kitni Chaahat Chupaaye, Himmatvar",,EXPLORATORY,REF_018,UNKNOWN,NONE,MELODY,CASE_STUDY
+QRY_020,"Mera Babu Chhail Chhabila, Ghar Dwaar",,EXPLORATORY,REF_019,UNKNOWN,NONE,UNKNOWN,CASE_STUDY
+QRY_021,"Dil Laga Ke Dekho, Ghar Ho To Aisa",https://www.youtube.com/watch?v=xMTwGr4Bu4k,EXPLORATORY,REF_020,UNKNOWN,NONE,MELODY,CASE_STUDY
+QRY_022,"Aaye Ho Abhi, Rang",https://www.youtube.com/watch?v=WC8OKZWseOs,EXPLORATORY,REF_021,UNKNOWN,NONE,UNKNOWN,CASE_STUDY
+QRY_023,Yaaro Sab Dua Karo,,EXPLORATORY,REF_022,UNKNOWN,NONE,MELODY_AND_RHYTHM,CASE_STUDY
+QRY_024,"Waada Karke Sajan Nahin Aaya, Barsaat Ki Raat",,EXPLORATORY,REF_023,UNKNOWN,NONE,MELODY_AND_RHYTHM,CASE_STUDY
+QRY_025,"Fevicol Se, Dabangg 2",https://www.youtube.com/watch?v=zE7Pwgl6sLA,EXPLORATORY,REF_024,UNKNOWN,NONE,MELODY_AND_RHYTHM,CASE_STUDY
+QRY_026,"Bheed Mein Tanhai Mein, Tumsa Nahin Dekha",https://www.youtube.com/watch?v=Eu9LPo0gqeQ,EXPLORATORY,REF_025,UNKNOWN,NONE,MELODY,CASE_STUDY
+QRY_027,"Tanhaiyan, Tumsa Nahin Dekha",https://www.youtube.com/watch?v=7hFnp3ob9o0,EXPLORATORY,REF_026,UNKNOWN,NONE,MELODY,CASE_STUDY
+QRY_028,"Nazrein Lad Gayi, Bal Bramhachari",https://www.youtube.com/watch?v=Nmw1TnObtB0,EXPLORATORY,REF_027,UNKNOWN,NONE,MELODY_AND_RHYTHM,CASE_STUDY
+QRY_029,"Der Na Ho Jaye, Henna",https://www.youtube.com/watch?v=1B7zGfBHdg0,EXPLORATORY,REF_028,UNKNOWN,NONE,MELODY_AND_RHYTHM,CASE_STUDY
+QRY_030,"Isse Zyada Dukh Na Koi, Shreemaan Aashique",https://www.youtube.com/watch?v=RfxrP14BrMI,EXPLORATORY,REF_029,UNKNOWN,NONE,MELODY_AND_RHYTHM,CASE_STUDY
+QRY_031,"Nahin Jeena Yaar Bina, Chaahat",https://www.youtube.com/watch?v=Pg5pAxGf8Ck,EXPLORATORY,REF_030,UNKNOWN,NONE,UNKNOWN,CASE_STUDY
+QRY_032,"Sanson Ki Mala Pe, Koyla",https://www.youtube.com/watch?v=FipKi--TvlY,EXPLORATORY,REF_031,UNKNOWN,NONE,MELODY_AND_RHYTHM,CASE_STUDY
+QRY_033,"Mera Yaar Dildar Bada Sona, Jaanwar",https://www.youtube.com/watch?v=ltiVnd5dJCI,EXPLORATORY,REF_032,UNKNOWN,NONE,MELODY_AND_RHYTHM,CASE_STUDY
+QRY_034,"I Love You, Auzaar",https://www.youtube.com/watch?v=D3swmQeZAqA,EXPLORATORY,REF_033,UNKNOWN,NONE,UNKNOWN,CASE_STUDY
+QRY_035,"Zara Zara, Rehnaa Hai Terre Dil Mein",,FULL_SONG_REMAKE,REF_067,TRUE,MULTILINGUAL_VERSION,MELODY_AND_RHYTHM,VALIDATION
+QRY_036,,,,,,,,
+QRY_037,,,,,,,,
+QRY_038,,,,,,,,
+QRY_039,,,,,,,,
+QRY_040,,,,,,,,
