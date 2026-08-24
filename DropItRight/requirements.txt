@@ -1,0 +1,36 @@
+# --- core baseline (Music-Plagiarism-Detection) ---
+torch
+torchaudio
+librosa
+soundfile
+demucs
+madmom
+pretty_midi
+jsonpickle
+mido
+tqdm
+numpy
+scipy
+pandas
+
+# --- compIAM (Indian Art Music tools: tonic, raga, CAE-Carnatic, TCN beat tracker) ---
+# The PyPI release can lag behind GitHub main and may be missing newer model
+# keys (e.g. "rhythm:tcn-carnatic" -- without it, beat_tracking.py silently
+# falls back to madmom, which still works but loses the Carnatic-tuned tracker).
+# Install from source to get the latest models_dict:
+git+https://github.com/MTG/compIAM
+essentia          # required by TonicIndianMultiPitch
+
+# --- global embeddings ---
+transformers
+sentencepiece      # tokenizers for some Indic ASR models
+
+# --- reference DB ---
+faiss-cpu           # swap for faiss-gpu on the GPU server if you want GPU ANN search
+
+# --- visualization ---
+matplotlib
+
+# NOTE on madmom: pip's PyPI release lags GitHub; if `pip install madmom` fails
+# on your Python version, install from source instead:
+#   pip install git+https://github.com/CPJKU/madmom

@@ -1,0 +1,1 @@
+Place fold_4_trf_param.pt here (fetch from the original Music-Plagiarism-Detection repo / MIPPIA release) only if you plan to run process_song(..., include_symbolic_pianoroll=True). Not required for the primary embedding-based pipeline (TCN Carnatic replaces this for beat tracking).
