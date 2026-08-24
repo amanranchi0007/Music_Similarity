@@ -43,8 +43,11 @@ def run_query(audio_path, db_dir, top_k=5, device="cpu", symbolic_pianoroll=Fals
             "have failed; check logs above."
         )
 
-    # Stage 1: global candidate shortlist
-    candidates = db.search_global(query_info.global_mert_embedding, top_k=top_k)
+    # Stage 1: global candidate shortlist (raga is a soft re-rank nudge, not
+    # a hard filter -- see reference_db.search_global's docstring caveat)
+    candidates = db.search_global(
+        query_info.global_mert_embedding, top_k=top_k, query_raga=query_info.raga
+    )
     if not candidates:
         return {"query": audio_path, "matches": [], "message": "No reference songs indexed yet."}
 

@@ -29,7 +29,8 @@ New (DropItRight extension):
   segmentation.py                phrase-aligned segmentation (replaces fixed 3s/5s/7s windows)
   indian_features.py             Tonic, Raga (DEEPSRGM), CAE-Carnatic melodic embeddings (compIAM)
   global_embeddings.py           MERT whole-song embedding + Indic ASR lyrics transcript
-  melodysim_embeddings.py        adapter stub for YOUR existing melodysim model — NEEDS WIRING
+  melodysim_embeddings.py        AMAAI-Lab MelodySim (Siamese/triplet MERT-95M model) — wired,
+                                  needs DROPITRIGHT_MELODYSIM_CKPT set (see below)
   process_song.py                orchestrates all of the above into one Music_info profile
   reference_db.py                FAISS-based Stage-1 index + Stage-2 lazy segment-profile store
   fusion.py                      Stage-2 per-segment score fusion (cae + melodysim + lyrics [+ piano_roll])
@@ -58,11 +59,29 @@ Notes:
 
 ## Before running for real
 
-**`melodysim_embeddings.py` is a stub.** It raises `NotImplementedError` until you
-wire in your existing melody-sim model's load/inference calls (see the TODOs in
-that file). `process_song.py` already catches that and continues — the CAE +
-lyrics signals alone will produce a (partial) similarity score — but plug in
-melodysim before trusting the numbers.
+**`melodysim_embeddings.py` needs a checkpoint set.** It's wired to
+[AMAAI-Lab/MelodySim](https://huggingface.co/amaai-lab/MelodySim), a
+triplet-trained Siamese network over MERT-v1-95M features. Download the
+checkpoint and point the env var at it:
+
+```bash
+wget https://huggingface.co/amaai-lab/MelodySim/resolve/main/siamese_net_20250328.ckpt
+export DROPITRIGHT_MELODYSIM_CKPT=/path/to/siamese_net_20250328.ckpt
+```
+
+Without it set, `process_song.py` catches the resulting `RuntimeError` and
+continues — CAE + lyrics alone will produce a (partial) similarity score —
+but set it before trusting the fused numbers, since melodysim carries the
+single largest fusion weight (0.35, tied with CAE).
+
+Note: MelodySim's embedding space is trained on **Euclidean distance**, not
+cosine (same-song pairs are trained toward distance ≈ 0) — `fusion.py`
+accounts for this with a dedicated `_melodysim_similarity` (distance → bounded
+similarity via `1/(1+distance)`), separate from CAE's cosine scoring. It also
+loads its own MERT-v1-95M instance (the checkpoint was trained against that
+exact model), independent of the MERT-v1-330M used for the whole-song global
+embedding elsewhere in this pipeline — expect two MERT models resident in
+memory/VRAM when both run.
 
 **`--symbolic-pianoroll` / `include_symbolic_pianoroll=True`** re-enables the
 baseline's demucs+AST+Beat-Transformer piano-roll path as an extra fused signal.
@@ -117,14 +136,17 @@ pool all scales together since it's just drawing time ranges.
 ## Known gaps / next steps (tracked from plan.md)
 
 - Wire up `melodysim_embeddings.py` with your actual model.
-- `fusion.py`'s lyrics similarity is a placeholder token-overlap metric — swap
-  for an embedding-based multilingual similarity for better recall on
-  paraphrased/transliterated lyrics.
+- `fusion.py`'s lyrics similarity is an n-gram (BLEU-style) metric — good at
+  catching near-verbatim/copied lines, weak on paraphrased or transliterated
+  lyrics with the same meaning but different words. Swap for an
+  embedding-based multilingual similarity if that recall gap matters for
+  your use case.
 - `DEEPSRGM`'s raga vocabulary (~40 Carnatic ragas) doesn't cover most
-  regional/film music cleanly — it's wired as a soft re-rank signal only
-  (`reference_db.search_global`'s `raga_boost` currently isn't applied to the
-  FAISS score directly; hook it in once you've validated raga predictions are
-  reliable enough on your actual regional-song corpus to be worth the re-rank).
+  regional/film music cleanly. `reference_db.search_global` now applies a
+  soft re-rank boost (`raga_boost`, default 0.05) to same-raga candidates —
+  pass `query_raga=None` (the default) to disable it entirely until you've
+  validated raga predictions are reliable enough on your actual regional-song
+  corpus to be worth the nudge.
 - No auth/API layer yet — `build_index.py`/`query.py` are CLI-only; wrap
   `process_song`/`ReferenceDB`/`fusion` in a service (FastAPI, etc.) for the
   actual upload-and-report product surface.

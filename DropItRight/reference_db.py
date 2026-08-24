@@ -122,10 +122,14 @@ class ReferenceDB:
 
     # ------------------------------------------------------------- reads
 
-    def search_global(self, query_embedding, top_k=20, raga_boost=0.05):
+    def search_global(self, query_embedding, top_k=20, query_raga=None, raga_boost=0.05):
         """Stage 1: ANN search over global_mert_embedding, then a soft
         re-rank that nudges same-raga candidates up slightly (per plan.md,
-        raga is a soft signal -- never a hard filter)."""
+        raga is a soft signal -- never a hard filter, since DEEPSRGM's
+        ~40-raga Carnatic vocabulary doesn't cleanly cover regional/film
+        music). Pass query_raga (the query song's predicted raga) to enable
+        the boost; omit it to skip re-ranking entirely (e.g. if you haven't
+        validated raga predictions are reliable enough on your corpus yet)."""
         if self._index is None:
             dim = np.asarray(query_embedding).shape[0]
             self._load_index(dim)
@@ -144,8 +148,12 @@ class ReferenceDB:
             song_id = self._id_to_song.get(int(idx))
             if song_id is None:
                 continue
-            results.append({"song_id": song_id, "score": float(score),
-                             "meta": self._meta.get(song_id, {})})
+            meta = self._meta.get(song_id, {})
+            boosted_score = float(score)
+            if query_raga is not None and meta.get("raga") == query_raga:
+                boosted_score += raga_boost
+            results.append({"song_id": song_id, "score": boosted_score,
+                             "raw_score": float(score), "meta": meta})
 
         results.sort(key=lambda r: r["score"], reverse=True)
         return results[:top_k]

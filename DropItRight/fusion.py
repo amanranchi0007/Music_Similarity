@@ -8,6 +8,9 @@ symbolic piano-roll term. This module adds the new embedding-based terms
 without touching the existing tensor math in compare.py/compare_utils.py.
 """
 
+import math
+from collections import Counter
+
 import numpy as np
 
 DEFAULT_WEIGHTS = {
@@ -26,19 +29,69 @@ def _cosine(a, b):
     return float(np.dot(a, b) / denom)
 
 
-def _lyrics_similarity(text_a, text_b):
-    """Cheap token-overlap similarity as a default; swap for an embedding-based
-    (e.g. multilingual sentence transformer) similarity for better recall on
-    paraphrased lyrics."""
+def _melodysim_similarity(a, b):
+    """MelodySim's embedding space is triplet-margin trained on Euclidean
+    distance, not cosine -- "same songs are labelled with 0 [distance]" per
+    the original repo (see melodysim_embeddings.py docstring). Map distance
+    to a bounded (0, 1] similarity via 1/(1+d): d=0 -> 1.0, larger distance
+    decays smoothly toward 0 instead of going unbounded/negative."""
+    a = np.asarray(a, dtype=float)
+    b = np.asarray(b, dtype=float)
+    distance = float(np.linalg.norm(a - b))
+    return 1.0 / (1.0 + distance)
+
+
+def _ngrams(tokens, n):
+    return [tuple(tokens[i:i + n]) for i in range(len(tokens) - n + 1)]
+
+
+def _modified_precision(cand_tokens, ref_tokens, n):
+    cand_ngrams = Counter(_ngrams(cand_tokens, n))
+    if not cand_ngrams:
+        return 0.0
+    ref_ngrams = Counter(_ngrams(ref_tokens, n))
+    overlap = sum(min(count, ref_ngrams.get(gram, 0)) for gram, count in cand_ngrams.items())
+    return overlap / sum(cand_ngrams.values())
+
+
+def _brevity_penalty(cand_tokens, ref_tokens):
+    c_len, r_len = len(cand_tokens), len(ref_tokens)
+    if c_len == 0:
+        return 0.0
+    if c_len >= r_len:
+        return 1.0
+    return math.exp(1 - r_len / c_len)
+
+
+def _bleu(cand_tokens, ref_tokens, max_n):
+    precisions = [_modified_precision(cand_tokens, ref_tokens, n) for n in range(1, max_n + 1)]
+    if all(p == 0 for p in precisions):
+        return 0.0
+    # additive smoothing for zero n-gram precisions (common on short lyric
+    # slices, e.g. a 3s segment) instead of letting one zero collapse the
+    # whole geometric mean to 0
+    smoothed = [p if p > 0 else 1e-9 for p in precisions]
+    geo_mean = math.exp(sum(math.log(p) for p in smoothed) / len(smoothed))
+    return geo_mean * _brevity_penalty(cand_tokens, ref_tokens)
+
+
+def _lyrics_similarity(text_a, text_b, max_n=4):
+    """N-gram (BLEU-style) lyric similarity: geometric mean of modified
+    n-gram precisions (n=1..max_n) with a brevity penalty, computed in both
+    directions and averaged since plagiarism matching has no fixed
+    "reference" side (BLEU itself is asymmetric -- candidate vs. reference).
+    max_n is capped to the shorter lyric slice's length so short per-segment
+    transcripts (a handful of words) don't degenerate to an all-zero score."""
     if not text_a or not text_b:
         return 0.0
-    tokens_a = set(text_a.lower().split())
-    tokens_b = set(text_b.lower().split())
+    tokens_a = text_a.lower().split()
+    tokens_b = text_b.lower().split()
     if not tokens_a or not tokens_b:
         return 0.0
-    intersection = len(tokens_a & tokens_b)
-    union = len(tokens_a | tokens_b)
-    return intersection / union if union else 0.0
+    n = max(1, min(max_n, len(tokens_a), len(tokens_b)))
+    score_ab = _bleu(tokens_a, tokens_b, n)
+    score_ba = _bleu(tokens_b, tokens_a, n)
+    return float((score_ab + score_ba) / 2)
 
 
 def segment_pair_breakdown(query_segment, ref_segment, piano_roll_score=None):
@@ -54,7 +107,7 @@ def segment_pair_breakdown(query_segment, ref_segment, piano_roll_score=None):
         scores["cae"] = max(0.0, _cosine(query_segment["cae_embedding"], ref_segment["cae_embedding"]))
 
     if query_segment.get("melodysim_embedding") is not None and ref_segment.get("melodysim_embedding") is not None:
-        scores["melodysim"] = max(0.0, _cosine(query_segment["melodysim_embedding"], ref_segment["melodysim_embedding"]))
+        scores["melodysim"] = _melodysim_similarity(query_segment["melodysim_embedding"], ref_segment["melodysim_embedding"])
 
     q_lyrics = query_segment.get("lyrics_slice")
     r_lyrics = ref_segment.get("lyrics_slice")
