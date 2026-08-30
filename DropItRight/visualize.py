@@ -110,12 +110,31 @@ FEATURE_META = {
 
 # --------------------------------------------------------------- plot utils
 
-def _fig_to_base64(fig, transparent=True):
+def _fig_to_base64(fig, transparent=True, dpi=300):
+    """dpi=300 -- publication/research-quality raster (standard journal
+    figure minimum), not just screen-resolution."""
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=130, bbox_inches="tight", transparent=transparent)
+    fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight", transparent=transparent)
     plt.close(fig)
     buf.seek(0)
     return base64.b64encode(buf.read()).decode("ascii")
+
+
+def _save_fig(fig, out_path, transparent=False, dpi=300):
+    """Save a figure to disk at research quality (300dpi) AND return its
+    base64 PNG for embedding in the HTML report, from the same render (one
+    savefig call, not two) -- so every plot in a report is automatically
+    written out as a standalone file too, no manual download step needed.
+    transparent=False by default here (unlike _fig_to_base64): a plot saved
+    to disk for later use in a paper/slide deck should have a real
+    background, not rely on whatever page it's viewed on."""
+    import os
+    os.makedirs(os.path.dirname(out_path) or ".", exist_ok=True)
+    fig.savefig(out_path, format="png", dpi=dpi, bbox_inches="tight", transparent=transparent)
+    with open(out_path, "rb") as f:
+        png_bytes = f.read()
+    plt.close(fig)
+    return base64.b64encode(png_bytes).decode("ascii")
 
 
 def _style_axes_dark(ax, fig):
@@ -253,6 +272,12 @@ HTML_SHELL = """<!doctype html>
   }}
   .badge-match {{ background: rgba(46, 160, 67, 0.25); color: #56d364; }}
   .badge-nomatch {{ background: rgba(139, 148, 158, 0.2); color: #8b949e; }}
+  .download-link {{
+    display: inline-block; margin-top: 4px; font-size: 12px;
+    color: #58a6ff; text-decoration: none; border: 1px solid rgba(88, 166, 255, 0.4);
+    border-radius: 6px; padding: 3px 10px;
+  }}
+  .download-link:hover {{ background: rgba(88, 166, 255, 0.12); }}
 </style></head><body>
 {body}
 </body></html>

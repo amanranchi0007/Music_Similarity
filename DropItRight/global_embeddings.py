@@ -186,7 +186,10 @@ def slice_lyrics(global_lyrics, seg_start, seg_end):
     words = []
     for chunk in chunks:
         start, end = chunk.get("timestamp", (None, None))
-        if start is None:
+        if start is None or end is None:
+            # Whisper occasionally omits the closing timestamp on the last
+            # chunk of a clip ("did not predict an ending timestamp") -- skip
+            # rather than crash on the None comparison below.
             continue
         if start < seg_end and end > seg_start:
             words.append(chunk["text"])

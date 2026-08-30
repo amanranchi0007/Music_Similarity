@@ -168,6 +168,49 @@ def best_segment_matches(query_segments, ref_segments, top_n=10, weights=None):
     return results[:top_n]
 
 
+def all_segment_pairs(query_segments, ref_segments):
+    """All-pairs segment breakdown for one (query, reference) song pair, with
+    NO fusion applied -- every feature kept as its own score. Used when you
+    want to rank/display each signal independently instead of one combined
+    decision number (see compare_pair.py)."""
+    results = []
+    for q_seg in query_segments:
+        for r_seg in ref_segments:
+            breakdown = segment_pair_breakdown(q_seg, r_seg)
+            if not breakdown:
+                continue
+            results.append({
+                "breakdown": breakdown,
+                "query_start": q_seg["start"],
+                "query_end": q_seg["end"],
+                "ref_start": r_seg["start"],
+                "ref_end": r_seg["end"],
+            })
+    return results
+
+
+def top_matches_by_feature(pairs, feature, top_n=10, min_score=0.5):
+    """Sort all_segment_pairs() output by one specific feature's score
+    (descending), keeping only pairs where that feature was actually
+    computed AND scored at least min_score. No fusion -- this is "top matches
+    according to melodysim alone", "top matches according to lyrics alone",
+    etc.
+
+    min_score matters: cae/melodysim/lyrics are all continuous scores, so
+    "> 0" (the old default) let essentially-noise matches (e.g. cosine 0.02)
+    into a "top match" table, which reads as a real overlap when it isn't --
+    that's what was making every song look like it had Carnatic-melody
+    overlap even when it didn't. 0.5 is a neutral floor across all four
+    scales (cae/melodysim cosine-ish, lyrics BLEU, piano_roll clamp), all
+    nominally in [0, 1] -- tune per-feature if one signal runs hot/cold."""
+    scored = [
+        p for p in pairs
+        if feature in p["breakdown"] and p["breakdown"][feature] >= min_score
+    ]
+    scored.sort(key=lambda p: p["breakdown"][feature], reverse=True)
+    return scored[:top_n]
+
+
 def similarity_matrices(query_segments, ref_segments, weights=None):
     """Full all-pairs similarity matrices for one (query, reference) segment
     scale -- one matrix per active feature plus the fused matrix. This is the

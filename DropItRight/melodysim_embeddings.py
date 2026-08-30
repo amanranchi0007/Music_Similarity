@@ -36,7 +36,11 @@ MELODYSIM_CKPT = os.environ.get("DROPITRIGHT_MELODYSIM_CKPT")
 # -- the checkpoint's weights expect that exact feature distribution.
 MELODYSIM_MERT_MODEL_ID = "m-a-p/MERT-v1-95M"
 MELODYSIM_EMB_DIM = 128
-MELODYSIM_SAMPLE_RATE = 44100
+# m-a-p/MERT-v1-95M's Wav2Vec2FeatureExtractor is configured for 24kHz (not
+# 44.1kHz like the CQT-based CAE-Carnatic path) -- confirmed against the
+# model's actual preprocessor_config.json; passing 44100 raw audio in
+# raises "was trained using a sampling rate of 24000" from HF.
+MELODYSIM_SAMPLE_RATE = 24000
 
 _melodysim_model = None
 _mert_model = None

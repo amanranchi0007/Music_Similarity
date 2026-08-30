@@ -35,12 +35,39 @@ def _get_tonic_model():
     return _tonic_model
 
 
-def _get_raga_model():
+def _get_raga_model(device="cpu"):
     global _raga_model
     if _raga_model is None:
         import compiam
-        _raga_model = compiam.load_model("melody:deepsrgm")
+        # Without an explicit device, DEEPSRGM's own __init__ defaults to
+        # "cuda" (i.e. cuda:0) whenever *any* GPU is visible, ignoring
+        # whichever --device this process was actually told to use -- on a
+        # shared GPU box that silently piles every process's raga model onto
+        # device 0 and can OOM it even when the rest of the pipeline is on
+        # cuda:1/cuda:2. Route it explicitly instead.
+        _raga_model = compiam.load_model("melody:deepsrgm", device=device)
     return _raga_model
+
+
+def unload_raga_model():
+    """Free DEEPSRGM's GPU memory as soon as raga extraction is done for a
+    song. Its forward pass always runs a fixed batch of 200 random 5000-
+    sample subsequences through an LSTM (hidden_size=768) -- a constant
+    ~15GB single allocation regardless of song length, unrelated to whatever
+    else (MERT/CAE/MelodySim/Whisper) is about to load onto the same device.
+    Called right after extract_raga() in process_song.py so that allocation
+    is released before the rest of the pipeline claims GPU memory, instead
+    of everything sitting in VRAM at once."""
+    global _raga_model
+    if _raga_model is not None:
+        del _raga_model
+        _raga_model = None
+        try:
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except ImportError:
+            pass
 
 
 def _get_cae_model(device="cpu"):
@@ -58,15 +85,29 @@ def extract_tonic(audio_path, input_sr=44100):
     return float(tonic_hz)
 
 
-def extract_raga(pitch_path=None, tonic_hz=None, audio_path=None, input_sr=44100, k=5):
+def extract_raga(pitch_path=None, tonic_hz=None, audio_path=None, input_sr=44100, k=5,
+                  device="cpu", confidence_threshold=0.7):
     """Whole-song raga prediction.
 
     DEEPSRGM's own feature extractor (get_features) expects either raw audio or
     precomputed pitch/tonic paths -- wire whichever is available. Returned as a
     soft signal: (raga_label, confidence), not a hard filter (see plan.md caveat
     about DEEPSRGM's ~40-raga mapping not covering regional/film music cleanly).
+
+    IMPORTANT: DEEPSRGM has no "not Carnatic" class -- model.predict() always
+    forces the input into one of its ~10-40 trained ragas, no matter how little
+    the audio actually resembles any of them (it *does* compute a majority-vote
+    "confidence" internally and even logs "CONFUSED" below its own default
+    threshold=0.6, but still returns the majority label regardless -- the
+    threshold only gates a log message, not the return value). That's why raga
+    labels were showing up on clearly non-Carnatic tracks. We replicate
+    predict()'s own vote computation here (same model, same features) so we can
+    actually withhold the label -- reporting raga=None -- when confidence is
+    below confidence_threshold, instead of always forcing a guess.
     """
-    model = _get_raga_model()
+    import torch
+
+    model = _get_raga_model(device=device)
     try:
         features = model.get_features(
             input_data=audio_path,
@@ -75,15 +116,23 @@ def extract_raga(pitch_path=None, tonic_hz=None, audio_path=None, input_sr=44100
             tonic_path=None,
             k=k,
         )
-        prediction = model.predict(features)
-        # DEEPSRGM.predict returns majority-voted raga id(s); shape/format
-        # depends on compiam version -- normalize defensively.
-        if isinstance(prediction, (list, tuple, np.ndarray)) and len(prediction) > 0:
-            raga_label = prediction[0]
-            confidence = float(prediction[1]) if len(prediction) > 1 else None
-        else:
-            raga_label, confidence = prediction, None
-        return {"raga": raga_label, "confidence": confidence}
+        # Mirrors DEEPSRGM.predict()'s internals (majority vote across
+        # subsequences) instead of calling predict() itself, for two reasons:
+        # 1. predict() unconditionally sets CUDA_VISIBLE_DEVICES via its own
+        #    `gpu` kwarg (default "-1"), which fights with the device this
+        #    model/process was actually placed on.
+        # 2. predict() never returns its vote fraction, only the forced label.
+        with torch.no_grad():
+            out = model.model.forward(torch.from_numpy(features).to(model.device).long())
+        preds = torch.argmax(out, axis=-1)
+        majority, _ = torch.mode(preds)
+        majority = int(majority)
+        votes = float(torch.sum(preds == majority)) / features.shape[0]
+
+        if model.mapping is None:
+            model.load_mapping(model.selected_ragas)
+        raga_label = model.mapping[majority] if votes >= confidence_threshold else None
+        return {"raga": raga_label, "confidence": votes}
     except Exception as exc:
         logger.warning("Raga recognition failed for %s: %s", audio_path, exc)
         return {"raga": None, "confidence": None}

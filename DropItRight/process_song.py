@@ -72,9 +72,18 @@ def process_song(audio_path, title=None, tmp_dir="tmp_segments", device="cpu",
         logger.warning("Tonic extraction failed for %s: %s", audio_path, exc)
 
     try:
-        raga_info = indian_features.extract_raga(audio_path=audio_path)
+        # DEEPSRGM's own forward pass always runs a fixed batch of 200 random
+        # 5000-sample subsequences through an LSTM (hidden_size=768) *no
+        # matter how long the song is* -- a constant ~15GB single allocation
+        # every call, on top of whatever MERT/CAE/MelodySim/Whisper are about
+        # to load onto the same device. Run it on the GPU (it's still much
+        # faster there than CPU), but free it immediately below instead of
+        # letting it sit in VRAM for the rest of process_song().
+        raga_info = indian_features.extract_raga(audio_path=audio_path, device=device)
     except Exception as exc:
         logger.warning("Raga recognition failed for %s: %s", audio_path, exc)
+    finally:
+        indian_features.unload_raga_model()
 
     mert_embedding = None
     try:
